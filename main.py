@@ -1,4 +1,5 @@
 import argparse
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--packet_name', type=str)
@@ -54,3 +55,56 @@ if args.max_depth <= 0:
     exit()
 
 print("all parameters are valid")
+
+print("\n" + "=" * 50)
+print("СТАРТ ЭТАПА 2: СБОР ДАННЫХ О ЗАВИСИМОСТЯХ")
+print("=" * 50)
+
+
+def get_dependencies_from_test_file(package_name, package_version):
+    """Получение зависимостей из тестового файла"""
+    test_file = "test_apkindex.txt"
+
+    if not os.path.exists(test_file):
+        print(f"Тестовый файл {test_file} не найден")
+        return None
+
+    try:
+        with open(test_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        packages = content.split('\n\n')
+
+        for pkg in packages:
+            if f"P:{package_name}" in pkg and f"V:{package_version}" in pkg:
+                for line in pkg.split('\n'):
+                    if line.startswith('D:'):
+                        dependencies = line[2:].strip().split()
+                        return dependencies
+        return None
+
+    except Exception as e:
+        print(f"Ошибка чтения тестового файла: {e}")
+        return None
+
+
+print(f"Поиск зависимостей для пакета: {args.packet_name} версии {args.packet_version}")
+
+if args.repo_work_mode == "test":
+    dependencies = get_dependencies_from_test_file(args.packet_name, args.packet_version)
+
+    if dependencies is None:
+        print(f"Пакет {args.packet_name} версии {args.packet_version} не найден в тестовом репозитории")
+        exit(1)
+
+    print("\nПРЯМЫЕ ЗАВИСИМОСТИ:")
+    for dep in dependencies:
+        print(f"  - {dep}")
+
+    print(f"\nВсего прямых зависимостей: {len(dependencies)}")
+
+else:
+    print("Режим работы с реальным репозиторием будет реализован в следующих этапах")
+    print("Сейчас используется тестовый режим")
+
+print("\nЭТАП 2 ЗАВЕРШЕН УСПЕШНО")
